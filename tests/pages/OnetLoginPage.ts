@@ -9,6 +9,7 @@ export class OnetLoginPage {
   readonly trustedDeviceSkipButton: Locator
   readonly accountNotFoundMsg: Locator
   readonly loginHeading: Locator
+  readonly accountLoginButton: Locator
 
   constructor(private readonly page: Page) {
     this.emailInput = page.locator('input[name="email"], input#email')
@@ -33,6 +34,14 @@ export class OnetLoginPage {
     this.loginHeading = page
       .getByRole('heading', { name: /zaloguj|logowanie/i })
       .or(page.getByText(/zaloguj się do poczty|adres e-mail/i))
+      .first()
+    this.accountLoginButton = page
+      .locator('button:has-text("Logowanie"), a:has-text("Logowanie")')
+      .or(
+        page
+          .getByRole('button', { name: /konto/i })
+          .filter({ hasText: /logowanie/i }),
+      )
       .first()
   }
 
@@ -115,12 +124,14 @@ export class OnetLoginPage {
 
   async expectLoggedOut() {
     await expect(this.page).toHaveURL(
-      /.*(poczta\.onet\.pl|onet\.pl.*login|konto\.onet\.pl).*/,
+      /^https?:\/\/(www\.|poczta\.|konto\.)?onet\.pl([/?].*)?$/i,
       {
         timeout: 15_000,
       },
     )
-    await expect(this.emailInput.or(this.loginHeading).first()).toBeVisible({
+    await expect(
+      this.emailInput.or(this.loginHeading).or(this.accountLoginButton).first(),
+    ).toBeVisible({
       timeout: 15_000,
     })
   }
