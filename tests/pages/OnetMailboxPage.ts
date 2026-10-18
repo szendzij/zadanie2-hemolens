@@ -19,9 +19,21 @@ export class OnetMailboxPage {
 
   constructor(private readonly page: Page) {
     this.composeButton = page.getByRole('button', { name: 'Napisz wiadomość' })
-    this.recipientInput = page.locator('input[type="email"]')
-    this.subjectInput = page.locator('input[type="text"]').last()
-    this.bodyEditor = page.locator('[contenteditable="true"]').first()
+    this.recipientInput = page
+      .getByPlaceholder(/do:|odbiorca/i)
+      .or(page.locator('input[type="email"]'))
+      .first()
+    this.subjectInput = page
+      .getByPlaceholder(/temat/i)
+      .or(page.locator('input[name="subject"]'))
+      .or(page.getByLabel(/temat/i))
+      .first()
+    this.bodyEditor = page
+      .locator(
+        '.mail-composer [contenteditable="true"], [role="textbox"][contenteditable="true"]',
+      )
+      .or(page.locator('[contenteditable="true"]'))
+      .first()
     this.sendButton = page
       .getByRole('button', { name: 'Wyślij', exact: true })
       .or(page.locator('button:has-text("Wyślij")').first())
@@ -46,7 +58,10 @@ export class OnetMailboxPage {
         .isVisible({ timeout: 2500 })
       if (isVisible) {
         await this.closeOverlayButton.first().click()
-        await this.page.waitForTimeout(500)
+        await this.closeOverlayButton
+          .first()
+          .waitFor({ state: 'hidden', timeout: 3000 })
+          .catch(() => {})
       }
     } catch {}
   }
@@ -56,7 +71,6 @@ export class OnetMailboxPage {
     await this.recipientInput.waitFor({ state: 'visible', timeout: 10_000 })
     await this.recipientInput.fill(to)
     await this.recipientInput.press('Enter')
-    await this.page.waitForTimeout(500)
     await this.subjectInput.fill(subject)
     await this.bodyEditor.click()
     await this.bodyEditor.fill(body)
@@ -66,7 +80,14 @@ export class OnetMailboxPage {
 
   async waitForEmail(subject: string, timeoutMs = 30_000): Promise<Locator> {
     const emailItem = this.page.getByText(subject).first()
-    await emailItem.waitFor({ state: 'visible', timeout: timeoutMs })
+    try {
+      await emailItem.waitFor({ state: 'visible', timeout: 10_000 })
+    } catch {
+      if (await this.inboxFolderButton.isVisible().catch(() => false)) {
+        await this.inboxFolderButton.click()
+      }
+      await emailItem.waitFor({ state: 'visible', timeout: timeoutMs - 10_000 })
+    }
     return emailItem
   }
 
@@ -75,7 +96,6 @@ export class OnetMailboxPage {
       await this.userMenuHeader.isVisible({ timeout: 5000 }).catch(() => false)
     ) {
       await this.userMenuHeader.click()
-      await this.page.waitForTimeout(500)
     }
     await this.logoutButton.waitFor({ state: 'visible', timeout: 10_000 })
     await this.logoutButton.click()
