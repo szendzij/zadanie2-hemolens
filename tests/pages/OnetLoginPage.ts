@@ -1,4 +1,4 @@
-import { Locator, Page } from '@playwright/test'
+import { expect, Locator, Page } from '@playwright/test'
 
 export class OnetLoginPage {
   readonly emailInput: Locator
@@ -8,6 +8,7 @@ export class OnetLoginPage {
   readonly cookieAcceptButton: Locator
   readonly trustedDeviceSkipButton: Locator
   readonly accountNotFoundMsg: Locator
+  readonly loginHeading: Locator
 
   constructor(private readonly page: Page) {
     this.emailInput = page.locator('input[name="email"], input#email')
@@ -29,6 +30,10 @@ export class OnetLoginPage {
     this.accountNotFoundMsg = page.locator(
       'text=Konto nie istnieje, text="Account does not exist"',
     )
+    this.loginHeading = page
+      .getByRole('heading', { name: /zaloguj|logowanie/i })
+      .or(page.getByText(/zaloguj się do poczty|adres e-mail/i))
+      .first()
   }
 
   async open() {
@@ -108,16 +113,15 @@ export class OnetLoginPage {
     )
   }
 
-  async isLoggedOut(): Promise<boolean> {
-    await this.page.waitForTimeout(2000)
-    const currentUrl = this.page.url()
-    const pageText = await this.page.locator('body').innerText()
-    const isOnetPortal = currentUrl.includes('onet.pl')
-    const hasLoginPrompt =
-      pageText.includes('LOGOWANIE') ||
-      pageText.includes('Zaloguj się') ||
-      pageText.includes('Adres email') ||
-      currentUrl.includes('signin')
-    return isOnetPortal && hasLoginPrompt
+  async expectLoggedOut() {
+    await expect(this.page).toHaveURL(
+      /.*(poczta\.onet\.pl|onet\.pl.*login|konto\.onet\.pl).*/,
+      {
+        timeout: 15_000,
+      },
+    )
+    await expect(this.emailInput.or(this.loginHeading).first()).toBeVisible({
+      timeout: 15_000,
+    })
   }
 }
