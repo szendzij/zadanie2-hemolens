@@ -45,7 +45,10 @@ export class OnetLoginPage {
         .isVisible({ timeout: 2500 })
       if (isVisible) {
         await this.cookieAcceptButton.first().click()
-        await this.page.waitForTimeout(500)
+        await this.cookieAcceptButton
+          .first()
+          .waitFor({ state: 'hidden', timeout: 5000 })
+          .catch(() => {})
       }
     } catch {}
   }
@@ -57,7 +60,10 @@ export class OnetLoginPage {
         .isVisible({ timeout: 6000 })
       if (isVisible) {
         await this.trustedDeviceSkipButton.first().click()
-        await this.page.waitForTimeout(1000)
+        await this.trustedDeviceSkipButton
+          .first()
+          .waitFor({ state: 'hidden', timeout: 5000 })
+          .catch(() => {})
       }
     } catch {}
   }
@@ -92,14 +98,7 @@ export class OnetLoginPage {
         .catch(() => {}),
     ])
 
-    if (
-      await this.trustedDeviceSkipButton
-        .first()
-        .isVisible()
-        .catch(() => false)
-    ) {
-      await this.trustedDeviceSkipButton.first().click()
-    }
+    await this.handleTrustedDeviceScreen()
 
     await this.page.waitForURL(
       (url) => url.hostname.includes('poczta.onet.pl'),
