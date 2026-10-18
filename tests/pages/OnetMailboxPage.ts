@@ -1,4 +1,4 @@
-import { Locator, Page } from '@playwright/test'
+import { expect, Locator, Page } from '@playwright/test'
 
 export interface ComposeOptions {
   to: string
@@ -66,8 +66,11 @@ export class OnetMailboxPage {
     } catch {}
   }
 
-  async composeAndSend({ to, subject, body }: ComposeOptions) {
+  async openCompose() {
     await this.composeButton.click()
+  }
+
+  async sendMail({ to, subject, body }: ComposeOptions) {
     await this.recipientInput.waitFor({ state: 'visible', timeout: 10_000 })
     await this.recipientInput.fill(to)
     await this.recipientInput.press('Enter')
@@ -76,6 +79,11 @@ export class OnetMailboxPage {
     await this.bodyEditor.fill(body)
     await this.sendButton.click()
     await this.bodyEditor.waitFor({ state: 'hidden', timeout: 15_000 })
+  }
+
+  async composeAndSend(options: ComposeOptions) {
+    await this.openCompose()
+    await this.sendMail(options)
   }
 
   async waitForEmail(subject: string, timeoutMs = 30_000): Promise<Locator> {
